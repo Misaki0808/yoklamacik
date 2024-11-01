@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Attendance System</title>
+    <style>
+      
+      ul {
+        display: inline-block;
+        width: 100%;
+        list-style-type: none;
+      }
+      ul li {
+        width: 100px;
+        display: inline-block;
+        background-color: black;
+        padding: 15px;
+        margin-right: -30px;
+      }
+      ul li a:hover {
+        color: red;
+        transition: 0.5s;
+      }
+      ul li a {
+        display: block;
+        text-decoration: none;
+        color: white;
+        font-weight: bold;
+      }
+      i {
+        margin-right: 10px;
+      }
+      #devs {
+        display: none;
+        position: absolute;
+        margin-left: -40px;
+        margin-top: 10px;
+      }
+      #devsli:hover #devs {
+        display: block;
+      }
+      
+      .attendance-form {
+        margin-left: 40px;
+        margin-top: 20px;
+        padding: 20px;
+        max-width: 400px;
+        background-color: #f4f4f4;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      }
+      .attendance-form label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .attendance-form input,
+      .attendance-form select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+      }
+      .attendance-form button {
+        width: 100%;
+        padding: 10px;
+        background-color: black;
+        color: white;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .attendance-form button:hover {
+        background-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    
+    <ul>
+      <li>
+        <a href=""><i class="fa-solid fa-house-chimney"></i> Home</a>
+      </li>
+      <li>
+        <a href="index1.html"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign in</a>
+      </li>
+      <li>
+        <a href="index.html"><i class="fa-solid fa-right-to-bracket"></i> Sign up</a>
+      </li>
+      <li id="devsli">
+        <a href=""><i class="fa-solid fa-person"></i> Developers</a>
+        <div id="devs">
+          <ul>
+            <li target="_blank" style="display: block"><a href="https://www.instagram.com/efbydmr/" onclick="window.open(this.href); return false;">Efe</a></li>
+            <li target="_blank" style="display: block"><a href="">İbrahim</a></li>
+            <li target="_blank" style="display: block"><a href="">Gökalp</a></li>
+            <li target="_blank" style="display: block"><a href="">Orhan</a></li>
+            <li target="_blank" style="display: block"><a href="">Tahir</a></li>
+          </ul>
+        </div>
+      </li>
+    </ul>
+    <div class="attendance-form">
+      <h2>Sign Up To The System</h2>
+      <form action="" method="post">
+        <label for="first-name">Name</label>
+        <input type="text" id="first-name" name="first-name" placeholder="Enter your name" required />
+
+        <label for="last-name">Surname</label>
+        <input type="text" id="last-name" name="last-name" placeholder="Enter your surname" required />
+
+        <label for="number">School Number</label>
+        <input type="number" id="number" name="number" placeholder="Enter your number" required />
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="Enter your email" required />
+
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+  </body>
+</html>
