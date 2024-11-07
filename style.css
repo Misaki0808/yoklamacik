@@ -68,3 +68,22 @@ ul {
   .attendance-form button:hover {
     background-color: red;
   }
+  @media (max-width: 768px) {
+    ul {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    ul li {
+      width: 100%; 
+      text-align: center;
+      padding: 10px;
+    }
+  }
+  @media (max-width: 768px) {
+    .attendance-form {
+      margin: 20px auto;
+      width: 90%; 
+      padding: 15px; 
+    }
+  }
