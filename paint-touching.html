@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Touch Area</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: white;
+      font-family: Arial, sans-serif;
+      transition: background-color 0.3s ease;
+    }
+
+    .phone {
+      width: 300px;
+      height: 600px;
+      border: 2px solid black;
+      position: relative;
+    }
+
+    .yellow-box {
+      position: absolute;
+      top: 200px;
+      left: 50px;
+      width: 200px;
+      height: 100px;
+      background-color: yellow;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .black-dot {
+      width: 40px;
+      height: 40px;
+      background-color: black;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="yellow-box">
+      <div class="black-dot" id="dot1"></div>
+      <div class="black-dot" id="dot2"></div>
+    </div>
+  </div>
+
+  <script>
+    // Dokunma algılaması
+    const yellowBox = document.querySelector('.yellow-box');
+    const dot1 = document.getElementById('dot1');
+    const dot2 = document.getElementById('dot2');
+
+    document.addEventListener('touchstart', (event) => {
+      const touches = event.touches;
+      let isInsideDot1 = false;
+      let isInsideDot2 = false;
+
+      // Dokunma kontrolü
+      for (let i = 0; i < touches.length; i++) {
+        const touch = touches[i];
+        const touchX = touch.clientX;
+        const touchY = touch.clientY;
+
+        // Dot 1 kontrolü
+        const rect1 = dot1.getBoundingClientRect();
+        if (
+          touchX >= rect1.left &&
+          touchX <= rect1.right &&
+          touchY >= rect1.top &&
+          touchY <= rect1.bottom
+        ) {
+          isInsideDot1 = true;
+        }
+
+        // Dot 2 kontrolü
+        const rect2 = dot2.getBoundingClientRect();
+        if (
+          touchX >= rect2.left &&
+          touchX <= rect2.right &&
+          touchY >= rect2.top &&
+          touchY <= rect2.bottom
+        ) {
+          isInsideDot2 = true;
+        }
+      }
+
+      // Her iki noktaya aynı anda dokunulursa arka planı yeşil yap
+      if (isInsideDot1 && isInsideDot2) {
+        document.body.style.backgroundColor = 'green';
+      } else {
+        document.body.style.backgroundColor = 'white';
+      }
+    });
+
+    document.addEventListener('touchend', () => {
+      document.body.style.backgroundColor = 'white'; // Parmağı kaldırınca beyaza dön
+    });
+  </script>
+</body>
+</html>
