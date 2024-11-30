@@ -157,7 +157,7 @@ def post_to_obs_results(session, url, base_url):
                 # Dinamik URL ile API'ye sorgu gönder
                 data=post_dynamic_api_data(session, base_url, dynamic_url, ogrenci_id, birim_id, "2024", "1")
                 #değişecek örnek, normalde biz datetime.now() ile alıcaz 
-                student_date="2024-11-28 10:23"
+                student_date=datetime.now().strftime("%Y-%m-%d %H:%M")
                 lesson=find_lesson(data,student_date)
                 print (lesson)
             else:
