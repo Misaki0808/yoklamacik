@@ -21,10 +21,8 @@ def datetime_converter(date_str):
     return formatted
 
 
-def read_data_array(file_path):
-    with open(file_path, 'r') as file:
-        # Load the file partially to access "data"
-        for lesson in json.load(file)["Data"]:
+def read_data_array(data):
+        for lesson in data["Data"]:
             yield lesson
 
 
@@ -38,8 +36,8 @@ def is_time_in_range(start, end, check_time):
     return start_dt <= check_time_dt <= end_dt
 
 
-def find_lesson(date_time):
-    for lesson in read_data_array("data.json"):
+def find_lesson(data,date_time):
+    for lesson in read_data_array(data):
         start=datetime_converter(lesson["Start"])
         end=datetime_converter(lesson["End"])
         
@@ -126,7 +124,7 @@ def post_dynamic_api_data(session, base_url, dynamic_url, ogrenci_id, birim_id, 
     if response.status_code == 200:
         try:
             data = response.json()
-            print("API Yanıtı:", data)
+            #print("API Yanıtı:", data)
             return data
         except ValueError:
             print("API yanıtı JSON formatında değil.")
@@ -157,9 +155,10 @@ def post_to_obs_results(session, url, base_url):
                 print(f"Öğrenci ID: {ogrenci_id}, Birim ID: {birim_id}")
                 
                 # Dinamik URL ile API'ye sorgu gönder
-                post_dynamic_api_data(session, base_url, dynamic_url, ogrenci_id, birim_id, "2024", "1")
+                data=post_dynamic_api_data(session, base_url, dynamic_url, ogrenci_id, birim_id, "2024", "1")
+                #değişecek örnek, normalde biz datetime.now() ile alıcaz 
                 student_date="2024-11-28 10:23"
-                lesson=find_lesson(student_date)
+                lesson=find_lesson(data,student_date)
                 print (lesson)
             else:
                 print("Dinamik URL'den ID'ler çıkarılamadı.")
