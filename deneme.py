@@ -1,7 +1,55 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import parse_qs, urlparse
+from datetime import datetime, timezone, timedelta
+import json
 
+# Function to parse, convert to UTC+3, and round up to the nearest minute
+def datetime_converter(date_str):
+    # Extract the timestamp (remove "/Date(" and ")/" and convert to int)
+    timestamp_ms = int(date_str.strip("/Date()/"))
+    # Convert to seconds
+    timestamp_s = timestamp_ms / 1000
+    # Convert to UTC datetime
+    utc_datetime = datetime.fromtimestamp(timestamp_s, timezone.utc)
+    # Convert to UTC+3 timezone
+    utc_plus_3 = utc_datetime + timedelta(hours=3)
+    # Round up to the next minute
+    if utc_plus_3.second > 0 or utc_plus_3.microsecond > 0:
+        utc_plus_3 = (utc_plus_3 + timedelta(minutes=1)).replace(second=0, microsecond=0)
+    formatted=utc_plus_3.strftime("%Y-%m-%d %H:%M")
+    return formatted
+
+
+def read_data_array(file_path):
+    with open(file_path, 'r') as file:
+        # Load the file partially to access "data"
+        for lesson in json.load(file)["Data"]:
+            yield lesson
+
+
+
+
+def is_time_in_range(start, end, check_time):
+    start_dt = datetime.strptime(start, "%Y-%m-%d %H:%M")
+    end_dt = datetime.strptime(end, "%Y-%m-%d %H:%M")
+    check_time_dt = datetime.strptime(check_time, "%Y-%m-%d %H:%M")
+    
+    return start_dt <= check_time_dt <= end_dt
+
+
+def find_lesson(date_time):
+    for lesson in read_data_array("data.json"):
+        start=datetime_converter(lesson["Start"])
+        end=datetime_converter(lesson["End"])
+        
+        #current_datetime=str(datetime.now())[0:16]
+
+        if is_time_in_range(start,end,date_time):
+            return lesson["Title"]
+    return "there is no lesson for you now"
+
+###########################################################
 def get_verification_token(session, url):
     response = session.get(url)
     if response.status_code == 200:
@@ -110,6 +158,9 @@ def post_to_obs_results(session, url, base_url):
                 
                 # Dinamik URL ile API'ye sorgu gönder
                 post_dynamic_api_data(session, base_url, dynamic_url, ogrenci_id, birim_id, "2024", "1")
+                student_date="2024-11-28 10:23"
+                lesson=find_lesson(student_date)
+                print (lesson)
             else:
                 print("Dinamik URL'den ID'ler çıkarılamadı.")
         else:
@@ -137,6 +188,7 @@ def main():
                 
                 # OBS giriş sonrası alınan çerezlerle post isteği yap
                 post_to_obs_results(session, obs_post_url, obs_url)
+
             else:
                 print(f"İlk OBS sayfasına erişim sağlanamadı: {response_first.status_code}")
         else:
