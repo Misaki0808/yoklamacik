@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: white;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #00c3a1;
+      color: white;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header .title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .welcome-container {
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    .welcome-container h1 {
+      color: #00c3a1; /* Sitenin rengine uygun */
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+
+    .icon-container {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      margin-top: 30px;
+    }
+
+    .icon-container div {
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .icon-container img {
+      width: 150px;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .icon-container img:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .icon-container p {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00c3a1;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-left">
+      <img src="{{ url_for('static', filename='images/istanbul-university-logo.png') }}" alt="Istanbul University Logo" height="60">
+    </div>
+    <div class="title">ISTANBUL UNIVERSITY ATTENDANCE SYSTEM</div>
+    <div class="logo-right"><img
+      src="{{ url_for('static', filename='images/attn-logo.png') }}"
+      alt="ATTN LOGO"
+    /></div>
+  </div>
+  
+  <div class="welcome-container">
+    <h1>Welcome to the Attendance System</h1>
+    <div class="icon-container">
+      <!-- Student Section -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 50px; margin-top: 30px;">
+        <a href="{{ url_for('student_login') }}" style="text-decoration: none; color: inherit; text-align: center;">
+            <img src="{{ url_for('static', filename='images/student-icon.png') }}" alt="Student Icon" style="width: 150px; height: auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
+            <p style="margin-top: 10px; font-size: 18px; font-weight: bold; color: #00c3a1;">Student Login</p>
+        </a>
+    
+        <a href="{{ url_for('academic_login') }}" style="text-decoration: none; color: inherit; text-align: center;">
+            <img src="{{ url_for('static', filename='images/academic-icon.png') }}" alt="Academic Icon" style="width: 150px; height: auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
+            <p style="margin-top: 10px; font-size: 18px; font-weight: bold; color: #00c3a1;">Academic Login</p>
+        </a>
+    </div>
+    
+    
+    
+    </div>
+  </div>
+</body>
+</html>
