@@ -20,6 +20,12 @@ body {
   margin-right: 10px; /* Sağ tarafında biraz boşluk bırak */
 }
 
+.logo-right img {
+  height: 95px; /* Logonun boyutunu ayarla */
+  width: auto;
+  margin-left: 10px; /* Sol tarafında biraz boşluk bırak */
+}
+
 .logo-right {
   font-size: 18px;
   font-weight: bold;

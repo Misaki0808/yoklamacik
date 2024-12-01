@@ -52,8 +52,8 @@ def student_login():
                         print(f"İlk OBS sayfasına erişim sağlanamadı: {response_first.status_code}")
                         return jsonify({"error": f"İlk OBS sayfasına erişim sağlanamadı: {response_first.status_code}"}), 500
                 else:
-                    print("Aksis API erişimi sağlanamadı")
-                    return jsonify({"error": "Aksis API erişimi sağlanamadı"}), 500
+                    print("Username or password is not valid, try again.")
+                    return jsonify({"error": "Username or password is not valid, try again."}), 500
             else:
                 print("Aksis giriş başarısız")
                 return jsonify({"error": "Aksis giriş başarısız"}), 500
