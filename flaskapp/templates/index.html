@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="header">
+    <div class="logo-left">
+      <img src="{{ url_for('static', filename='images/istanbul-university-logo.png') }}" alt="Istanbul University Logo">
+    </div>
+    <div class="title">ISTANBUL UNIVERSITY ATTENDANCE SYSTEM</div>
+    <div class="logo-right">ATTN</div>
+  </div>
+  <div class="welcome-container">
+    <h1>Welcome to the Attendance System</h1>
+    <div class="button-container">
+      <a href="{{ url_for('student_login') }}" class="button">Student Login</a>
+      <a href="{{ url_for('academic_login') }}" class="button">Academic Login</a>
+    </div>
+  </div>
+</body>
+</html>

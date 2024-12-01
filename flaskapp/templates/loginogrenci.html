@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="header">
+    <div class="logo-left">
+      <img src="{{ url_for('static', filename='images/istanbul-university-logo.png') }}" alt="Istanbul University Logo">
+    </div>
+    <div class="title">ISTANBUL UNIVERSITY ATTENDANCE SYSTEM LOGIN</div>
+    <div class="logo-right">ATTN</div>
+  </div>
+  <div class="login-container">
+    <form class="login-form" id="loginForm" method="POST" action="/student_login">
+      <label for="username">USERNAME</label>
+      <input type="text" id="username" name="username" placeholder="Enter your username" required>
+      <label for="password">PASSWORD</label>
+      <input type="password" id="password" name="password" placeholder="Enter your password" required>
+      <button type="submit">SIGN IN</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
+      event.preventDefault(); // Sayfanın yeniden yüklenmesini engeller
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+  
+      try {
+        const response = await fetch('/student_login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+  
+        if (response.ok) {
+          window.location.href = '/resultsogrenci';
+        } else {
+          const result = await response.json();
+          alert(result.error || 'An error occurred.');
+        }
+      } catch (error) {
+        alert('Network error: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
