@@ -41,7 +41,7 @@
         });
   
         if (response.ok) {
-          window.location.href = '/results';
+          window.location.href = '/resultsogrenci';
         } else {
           const result = await response.json();
           alert(result.error || 'An error occurred.');

@@ -66,7 +66,7 @@ def academic_login():
         return render_template('loginakademisyen.html')
     # POST işlemleri burada yapılacak
 
-@app.route('/results')
+@app.route('/resultsogrenci')
 def results():
     lessons = session.get('lessons')  # JSON verisini oturumdan alın
     if not lessons:
@@ -81,7 +81,7 @@ def results():
     if current_lesson != "there is no lesson for you now":
         return render_template('auth.html')
 
-    return render_template('results.html', lessons=lessons, current_lesson=current_lesson)
+    return render_template('resultsogrenci.html', lessons=lessons, current_lesson=current_lesson)
 
 if __name__ == '__main__':
     app.run(debug=True)
