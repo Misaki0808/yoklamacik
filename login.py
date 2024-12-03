@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask_session import Session
 import requests
 from urllib.parse import parse_qs, urlparse
 import json
@@ -9,6 +10,13 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Güvenli bir gizli anahtar oluşturun
+
+# Flask-Session configuration
+app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in the file system
+app.config['SESSION_PERMANENT'] = True   # Sessions should not persist permanently
+app.config['SESSION_USE_SIGNER'] = True   # Use a signed cookie for session
+app.config['SESSION_FILE_DIR'] = './flask_session'  # Directory to store session files
+Session(app)  # Initialize Flask-Session
 
 @app.route('/')
 def index():
@@ -42,11 +50,7 @@ def student_login():
                     if response_first.status_code == 200:
                         print("İlk OBS sayfasına erişim sağlandı")
                         lessons = post_to_obs_results(requests_session, obs_post_url, obs_url)
-                        if lessons is None:
-                            return jsonify({"error": "OBS sonuçları alınamadı"}), 500
-                        
-                        # Veriyi oturumda saklayın
-                        session['lessons'] = lessons
+                        session['lessons'] = lessons  # Store lessons in the session
                         return jsonify({"success": True}), 200
                     else:
                         print(f"İlk OBS sayfasına erişim sağlanamadı: {response_first.status_code}")
@@ -69,8 +73,12 @@ def academic_login():
 @app.route('/resultsogrenci')
 def results():
     lessons = session.get('lessons')  # JSON verisini oturumdan alın
+
     if not lessons:
-        lessons = []
+        print("Oturumda dersler bulunamadı")
+    else:
+        lessons = lessons['Data']
+        print(type(lessons))
 
     # Şu anki zamanı alın
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M")

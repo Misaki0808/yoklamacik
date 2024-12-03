@@ -6,15 +6,10 @@ import json
 
 # Function to parse, convert to UTC+3, and round up to the nearest minute
 def datetime_converter(date_str):
-    # Extract the timestamp (remove "/Date(" and ")/" and convert to int)
     timestamp_ms = int(date_str.strip("/Date()/"))
-    # Convert to seconds
     timestamp_s = timestamp_ms / 1000
-    # Convert to UTC datetime
     utc_datetime = datetime.fromtimestamp(timestamp_s, timezone.utc)
-    # Convert to UTC+3 timezone
     utc_plus_3 = utc_datetime + timedelta(hours=3)
-    # Round up to the next minute
     if utc_plus_3.second > 0 or utc_plus_3.microsecond > 0:
         utc_plus_3 = (utc_plus_3 + timedelta(minutes=1)).replace(second=0, microsecond=0)
     formatted=utc_plus_3.strftime("%Y-%m-%d %H:%M")
@@ -40,8 +35,6 @@ def find_lesson(data,date_time):
     for lesson in read_data_array(data):
         start=datetime_converter(lesson["Start"])
         end=datetime_converter(lesson["End"])
-        
-        #current_datetime=str(datetime.now())[0:16]
 
         if is_time_in_range(start,end,date_time):
             return lesson["Title"]
@@ -100,12 +93,9 @@ def extract_dynamic_url(soup):
 
 def extract_ids_from_url(dynamic_url):
     """Dinamik URL'den Öğrenci ID ve Birim ID'sini çıkarır."""
-    # Unicode kaçış karakterlerini çözüyoruz
     fixed_url = dynamic_url.replace(r"\u0026", "&")
     
-    print(f"Düzeltilmiş Dinamik URL: {fixed_url}")  # Debug için ekleme
-    
-    # URL'yi ayrıştırıyoruz
+    print(f"Düzeltilmiş Dinamik URL: {fixed_url}")
     query_params = parse_qs(urlparse(fixed_url).query)
     ogrenci_id = query_params.get("OgrenciId", [None])[0]
     birim_id = query_params.get("BirimId", [None])[0]
