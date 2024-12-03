@@ -51,18 +51,24 @@
         });
 
         if (response.ok) {
-          window.location.href = '/resultsogrenci'; // Giriş başarılı
+          // Giriş başarılı -> Ders sonuçlarını kontrol et
+          const lessonResponse = await fetch('/resultsogrenci');
+          if (lessonResponse.ok) {
+            window.location.href = '/resultsogrenci'; // Dersi olanlar yönlendirilir
+          } else if (lessonResponse.status === 404) {
+            const lessonError = await lessonResponse.json();
+            errorMessage.textContent = lessonError.error || 'No lesson found for you now';
+            errorMessage.style.display = 'block'; // Ders yok uyarısını göster
+          }
         } else {
           const result = await response.json();
           errorMessage.textContent = result.error || 'An error occurred. Please try again.';
-          errorMessage.style.display = 'block'; // Hata mesajını göster
-          // Butonu eski haline döndür
-          submitButton.innerHTML = "SIGN IN";
-          submitButton.disabled = false;
+          errorMessage.style.display = 'block'; // Giriş hatası mesajını göster
         }
       } catch (error) {
         errorMessage.textContent = 'Network error: ' + error.message;
         errorMessage.style.display = 'block'; // Ağ hatası mesajını göster
+      } finally {
         // Butonu eski haline döndür
         submitButton.innerHTML = "SIGN IN";
         submitButton.disabled = false;

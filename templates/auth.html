@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Touch Area and Lessons</title>
   <style>
+    /* Genel Ayarlar */
     body {
       margin: 0;
       height: 100vh;
@@ -17,14 +18,37 @@
       transition: background-color 0.3s ease;
     }
 
+    h1, h2 {
+      color: #00c3a1; /* Ana sayfa rengi */
+    }
+
+    p, li {
+      font-size: 18px;
+      color: #333;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    ul li {
+      margin: 5px 0;
+    }
+
+    /* Telefon Çerçevesi */
     .phone {
       width: 300px;
       height: 600px;
-      border: 2px solid black;
+      border: 2px solid #00c3a1; /* Ana sayfa renginde çerçeve */
+      border-radius: 20px;
       position: relative;
       margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      background-color: #f9f9f9; /* Hafif gri arka plan */
     }
 
+    /* Sarı Kutu */
     .yellow-box {
       position: absolute;
       top: 200px;
@@ -35,8 +59,11 @@
       display: flex;
       justify-content: space-around;
       align-items: center;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
 
+    /* Siyah Noktalar */
     .black-dot {
       width: 40px;
       height: 40px;
@@ -44,11 +71,17 @@
       border-radius: 50%;
     }
 
+    /* İçerik Bölgesi */
     .content {
-      width: 100%;
+      width: 90%;
+      max-width: 600px;
       padding: 20px;
       box-sizing: border-box;
       text-align: center;
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
   </style>
 </head>
@@ -63,13 +96,6 @@
   <div class="content">
     <h1>Current Lesson</h1>
     <p>{{ current_lesson }}</p>
-
-    <h2>All Lessons</h2>
-    <ul>
-        {% for lesson in lessons %}
-            <li>{{ lesson.Title }}</li>
-        {% endfor %}
-    </ul>
   </div>
 
   <script>

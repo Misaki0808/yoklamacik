@@ -11,12 +11,21 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Güvenli bir gizli anahtar oluşturun
 
+from datetime import timedelta
+
 # Flask-Session configuration
 app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in the file system
-app.config['SESSION_PERMANENT'] = True   # Sessions should not persist permanently
-app.config['SESSION_USE_SIGNER'] = True   # Use a signed cookie for session
-app.config['SESSION_FILE_DIR'] = './flask_session'  # Directory to store session files
-Session(app)  # Initialize Flask-Session
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_FILE_DIR'] = './flask_session'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # 30 dakika oturum süresi
+Session(app)
+
+@app.route('/logout')
+def logout():
+    session.clear()  # Oturumu temizle
+    print("Oturum temizlendi.")
+    return redirect(url_for('index'))  # Ana sayfaya yönlendirme
 
 @app.route('/')
 def index():
@@ -24,6 +33,7 @@ def index():
 
 @app.route('/student_login', methods=['GET', 'POST'])
 def student_login():
+    session.permanent = True
     if request.method == 'GET':
         return render_template('loginogrenci.html')
     elif request.method == 'POST':
@@ -87,9 +97,9 @@ def results():
     current_lesson = find_lesson(lessons, current_time)
 
     if current_lesson != "there is no lesson for you now":
-        return render_template('auth.html')
+        return render_template('auth.html',current_lesson=current_lesson)
 
-    return render_template('resultsogrenci.html', lessons=lessons, current_lesson=current_lesson)
+    return jsonify({"error": "No lesson found for you now"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
