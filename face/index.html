@@ -57,6 +57,40 @@
     <div id="loadingScreen">We are trying to detect now...</div>
 
     <script>
+        async function loadModels() {
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        try {
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+            ]);
+            console.log('Face-api models loaded successfully.');
+        } catch (error) {
+            console.error('Error loading face-api models:', error);
+            alert('Failed to load face-api models. Please check your internet connection.');
+        }
+    }
+
+        async function setupWebcam() {
+            const webcam = document.getElementById('webcam');
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Your browser does not support webcam access.');
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                webcam.srcObject = stream;
+                webcam.play();
+                console.log('Webcam is active.');
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+                alert('Webcam access denied or unavailable. Please check your browser settings and permissions.');
+            }
+        }
+
+
+
         async function loadObsImage() {
             const username = document.getElementById('usernameInput').value;
             const password = document.getElementById('passwordInput').value;
@@ -81,10 +115,12 @@
                 }
 
                 const data = await response.json();
-                const obsProfileImage = document.getElementById('obsProfileImage');
+                const base64Image = data.profile_image;
 
-                obsProfileImage.src = data.profile_image_url;
-                obsProfileImage.style.display = 'block';
+                // Base64'ten resim oluştur
+                const obsProfileImage = await loadImageFromBase64(base64Image);
+                document.getElementById('obsProfileImage').src = base64Image;
+                document.getElementById('obsProfileImage').style.display = 'block';
 
                 console.log('Profile image loaded successfully.');
             } catch (error) {
@@ -94,26 +130,14 @@
             }
         }
 
-        async function loadModels() {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-            ]);
-            console.log('Models loaded!');
-        }
-
-        async function setupWebcam() {
-            const webcam = document.getElementById('webcam');
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                webcam.srcObject = stream;
-                console.log('Webcam is active.');
-            } catch (err) {
-                console.error('Error accessing webcam:', err);
-                alert('Webcam access denied or unavailable.');
-            }
+        // Base64'ten HTMLImageElement'e dönüştürme fonksiyonu
+        async function loadImageFromBase64(base64) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = base64;
+                img.onload = () => resolve(img);
+                img.onerror = (err) => reject(err);
+            });
         }
 
         async function compareFaces() {
@@ -130,15 +154,17 @@
             loadingScreen.style.visibility = 'visible';
 
             try {
+                // OBS profil resmini analiz et
                 const obsDescriptor = await faceapi
                     .detectSingleFace(obsProfileImage, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
                     .withFaceDescriptor();
 
+                // Kameradan alınan görüntüyü canvas ile işleme
                 const webcamCanvas = document.createElement('canvas');
                 webcamCanvas.width = webcam.videoWidth;
                 webcamCanvas.height = webcam.videoHeight;
-                const webcamCtx = webcamCanvas.getContext('2d');
+                const webcamCtx = webcamCanvas.getContext('2d',{willReadFrequently: true});
                 webcamCtx.drawImage(webcam, 0, 0, webcamCanvas.width, webcamCanvas.height);
 
                 const webcamDescriptor = await faceapi
@@ -150,6 +176,7 @@
                     throw new Error('Face detection failed.');
                 }
 
+                // Euclidean distance ile karşılaştırma
                 const distance = faceapi.euclideanDistance(obsDescriptor.descriptor, webcamDescriptor.descriptor);
                 const threshold = 0.6;
 
@@ -168,9 +195,11 @@
         document.getElementById('loadObsImageBtn').addEventListener('click', loadObsImage);
         document.getElementById('captureBtn').addEventListener('click', compareFaces);
 
-        // Initialize face-api models and webcam
-        loadModels();
-        setupWebcam();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadModels();
+            setupWebcam();
+        });
+
     </script>
 </body>
 </html>
