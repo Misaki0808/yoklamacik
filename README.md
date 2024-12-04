@@ -1,1 +1,1 @@
-AKSİS BİSMİLLAH 
+Yoklama.app
