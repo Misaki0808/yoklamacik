@@ -1,19 +1,33 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_session import Session
 import requests
+import base64
 from urllib.parse import parse_qs, urlparse
 import json
 import secrets
 import os
-from functions import datetime_converter, read_data_array, is_time_in_range, find_lesson, get_verification_token, login_to_aksis, check_aksis_api, extract_dynamic_url, extract_ids_from_url, post_dynamic_api_data, post_to_obs_results
-from datetime import datetime
+from functions import (
+    datetime_converter,
+    read_data_array,
+    is_time_in_range,
+    find_lesson,
+    get_verification_token,
+    login_to_aksis,
+    check_aksis_api,
+    extract_dynamic_url,
+    extract_ids_from_url,
+    post_dynamic_api_data,
+    post_to_obs_results,
+    get_profile_image,
+    compare_faces,
+    access_obs_home
+)
+from datetime import datetime, timedelta
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Güvenli bir gizli anahtar oluşturun
-
-from datetime import timedelta
 
 # Flask-Session configuration
 app.config['SESSION_TYPE'] = 'filesystem'  # Store sessions in the file system
@@ -22,20 +36,19 @@ app.config['SESSION_USE_SIGNER'] = True
 app.config['SESSION_FILE_DIR'] = './flask_session'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # 30 dakika oturum süresi
 Session(app)
+
 def clean_session_files(session_dir, lifetime):
     """
     Eski oturum dosyalarını temizlemek için yardımcı fonksiyon.
-    :param session_dir: Oturum dosyalarının bulunduğu dizin.
-    :param lifetime: Oturum süresinin saniye cinsinden değeri.
     """
     now = time.time()
     for filename in os.listdir(session_dir):
         file_path = os.path.join(session_dir, filename)
         if os.path.isfile(file_path):
-            # Dosyanın son değiştirilme zamanını kontrol et
             if now - os.path.getmtime(file_path) > lifetime:
                 os.remove(file_path)
                 print(f"Eski oturum dosyası silindi: {file_path}")
+
 def start_cleaner():
     """
     Oturum dosyalarını temizlemek için zamanlayıcıyı başlatır.
@@ -46,12 +59,16 @@ def start_cleaner():
     scheduler.add_job(clean_session_files, 'interval', minutes=30, args=[session_dir, lifetime])
     scheduler.start()
 
-@app.before_first_request
 def initialize():
     """
     İlk istekten önce temizleyici zamanlayıcıyı başlat.
     """
     start_cleaner()
+
+# Uygulama bağlamında initialize fonksiyonunu çalıştır
+with app.app_context():
+    initialize()
+
 
 @app.route('/logout')
 def logout():
@@ -72,39 +89,81 @@ def student_login():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
-        
-        if not username or not password:
-            return jsonify({"error": "Username and password are required"}), 400
-        
+        webcam_image_base64 = data.get('webcamImage')  # Kullanıcıdan gelen webcam görüntüsü
+
+        if not username or not password or not webcam_image_base64:
+            return jsonify({"error": "Username, password, and webcam image are required"}), 400
+
         try:
             aksis_login_url = "https://aksis.istanbul.edu.tr/Account/LogOn"
             aksis_api_url = "https://aksis.istanbul.edu.tr/Home/Check667ForeignStudent"
             obs_url = "https://obs.istanbul.edu.tr"
             obs_post_url = "https://obs.istanbul.edu.tr/OgrenimBilgileri/DersProgramiYeni"
 
+            # Oturum oluştur
             requests_session = requests.Session()
             token = get_verification_token(requests_session, aksis_login_url)
 
+            # Aksis'e giriş
             if token and login_to_aksis(requests_session, username, password, aksis_login_url, token):
                 if check_aksis_api(requests_session, aksis_api_url):
-                    print("Aksis sayfasına erişim sağlandı")
-                    response_first = requests_session.get(obs_url)
-                    if response_first.status_code == 200:
-                        print("İlk OBS sayfasına erişim sağlandı")
-                        lessons = post_to_obs_results(requests_session, obs_post_url, obs_url)
-                        session['lessons'] = lessons  # Store lessons in the session
-                        return jsonify({"success": True}), 200
+                    print("Aksis'e giriş başarılı.")
+
+                    # OBS ana sayfasına erişim
+                    access_obs_home(requests_session)
+
+                    # Profil resmi alınıyor
+                    profile_image_base64 = get_profile_image(requests_session)
+                    if not profile_image_base64:
+                        return jsonify({"error": "Failed to retrieve profile image"}), 500
+
+                    # Yüz tanıma işlemi için dosyaları kaydet
+                    profile_image_path = "profile_image.jpg"
+                    webcam_image_path = "webcam_image.jpg"
+
+                    # Base64 verilerini çöz ve dosyaya kaydet
+                    with open(profile_image_path, "wb") as profile_file:
+                        profile_file.write(base64.b64decode(profile_image_base64.split(",")[1]))
+                    with open(webcam_image_path, "wb") as webcam_file:
+                        webcam_file.write(base64.b64decode(webcam_image_base64.split(",")[1]))
+
+                    # Yüz eşleşmesini kontrol et
+                    is_match = compare_faces(profile_image_path, webcam_image_path)
+                    if not is_match:
+                        return jsonify({
+                            "success": False,
+                            "message": "Face mismatch: Access denied.",
+                            "match": False,
+                            "distance": 0.533,  # Örnek bir mesafe değeri
+                            "threshold": 0.65
+                        }), 403
+
+                    # Ders bilgilerini al ve oturuma kaydet
+                    lessons = post_to_obs_results(requests_session, obs_post_url, obs_url)
+                    if lessons:
+                        session['lessons'] = lessons  # Ders bilgilerini oturuma kaydet
+                        print("Ders bilgileri başarıyla alındı ve oturuma kaydedildi.")
                     else:
-                        print(f"İlk OBS sayfasına erişim sağlanamadı: {response_first.status_code}")
-                        return jsonify({"error": f"İlk OBS sayfasına erişim sağlanamadı: {response_first.status_code}"}), 500
+                        print("Ders bilgileri alınamadı.")
+
+                    return jsonify({
+                        "success": True,
+                        "message": "Login Successful",
+                        "match": True
+                    }), 200
+
                 else:
-                    print("Username or password is not valid, try again.")
-                    return jsonify({"error": "Username or password is not valid, try again."}), 500
+                    return jsonify({"error": "Username or password is not valid"}), 401
+
             else:
-                print("Aksis giriş başarısız")
                 return jsonify({"error": "Aksis giriş başarısız"}), 500
+
         except Exception as e:
+            print(f"Hata: {e}")
             return jsonify({"error": str(e)}), 500
+
+
+
 
 @app.route('/academic_login', methods=['GET', 'POST'])
 def academic_login():
@@ -129,9 +188,12 @@ def results():
     current_lesson = find_lesson(lessons, current_time)
 
     if current_lesson != "there is no lesson for you now":
-        return render_template('auth.html',current_lesson=current_lesson)
+        return render_template('auth.html', current_lesson=current_lesson)
 
-    return jsonify({"error": "No lesson found for you now"}), 404
+    # Eğer ders bulunamazsa, hata mesajını oturuma kaydet
+    session['error_message'] = "No lesson found for you now"
+    return redirect(url_for('student_login'))  # Ana sayfaya yönlendirme
+
 
 if __name__ == '__main__':
     app.run(debug=True)

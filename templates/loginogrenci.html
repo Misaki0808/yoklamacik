@@ -1,79 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Login</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Genel stil */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            margin: 0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #00c3a1;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header .title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            z-index: 1000;
+            visibility: hidden;
+        }
+
+        #error-message {
+            color: red;
+            display: none;
+            font-size: 14px;
+        }
+
+        video {
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+
+        .card {
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: #00c3a1;
+            border-color: #00c3a1;
+        }
+
+        .btn-primary:hover {
+            background-color: #009f86;
+            border-color: #009f86;
+        }
+
+        /* Error notification style */
+        #error-notification {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: red;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo-left">
-      <img src="{{ url_for('static', filename='images/istanbul-university-logo.png') }}" alt="Istanbul University Logo">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-left">
+            <img src="{{ url_for('static', filename='images/istanbul-university-logo.png') }}" alt="Istanbul University Logo" height="60">
+        </div>
+        <div class="title">ISTANBUL UNIVERSITY ATTENDANCE SYSTEM</div>
+        <div class="logo-right">
+            <img src="{{ url_for('static', filename='images/attn-logo.png') }}" alt="ATTN LOGO" height="60">
+        </div>
     </div>
-    <div class="title">ISTANBUL UNIVERSITY ATTENDANCE SYSTEM LOGIN</div>
-    <div class="logo-right">
-      <img src="{{ url_for('static', filename='images/attn-logo.png') }}" alt="ATTN LOGO" />
+
+    <!-- Error Notification -->
+    {% if session.get('error_message') %}
+    <div id="error-notification">{{ session['error_message'] }}</div>
+    <script>
+        document.getElementById('error-notification').style.display = 'block';
+        setTimeout(function() {
+            document.getElementById('error-notification').style.display = 'none';
+        }, 5000); // Notification hides after 5 seconds
+    </script>
+    {% endif %}
+
+    <!-- Ana İçerik -->
+    <div class="container">
+        <h1 class="text-center mb-4">Student Login</h1>
+
+        <!-- Giriş Formu -->
+        <div class="card mb-3" id="loginSection">
+            <form id="loginForm">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" class="form-control mb-2" placeholder="Enter your username" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control mb-2" placeholder="Enter your password" required>
+                <button type="button" id="proceedButton" class="btn btn-primary w-100">Proceed to Face Recognition</button>
+            </form>
+        </div>
+
+        <!-- Yüz Tanıma Alanı -->
+        <div class="card p-4 mb-3" id="faceRecognitionSection" style="display: none;">
+            <h3 class="text-center">Face Recognition</h3>
+            <video id="webcam" class="d-block mx-auto" autoplay muted width="320" height="240"></video>
+            <button id="captureBtn" class="btn btn-primary mt-3 d-block mx-auto">Capture and Verify</button>
+            <div id="result" class="text-center mt-3"></div>
+        </div>
     </div>
-  </div>
-  <div class="login-container">
-    <form class="login-form" id="loginForm" method="POST" action="/student_login">
-        <label for="username">USERNAME</label>
-        <input type="text" id="username" name="username" placeholder="Enter your username" required>
-        <label for="password">PASSWORD</label>
-        <input type="password" id="password" name="password" placeholder="Enter your password" required>
-        <button type="submit" id="submitButton">SIGN IN</button>
-        <!-- Hata mesajı için boş bir div -->
-        <div id="error-message" style="color: red; margin-top: 10px; display: none;"></div>
-    </form>
-  </div>
 
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async function(event) {
-      event.preventDefault(); // Sayfanın yeniden yüklenmesini engeller
+    <!-- Loading Screen -->
+    <div id="loadingScreen">Processing, please wait...</div>
 
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const errorMessage = document.getElementById('error-message');
-      const submitButton = document.getElementById('submitButton');
+    <script>
+        async function setupWebcam() {
+            const webcam = document.getElementById('webcam');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                webcam.srcObject = stream;
+                webcam.play();
+            } catch (err) {
+                alert('Unable to access webcam. Please check your browser permissions.');
+            }
+        }
 
-      // Loading spinner aktif et
-      submitButton.innerHTML = "Loading...";
-      submitButton.disabled = true; // Butonu devre dışı bırak
+        async function captureAndVerifyFace(username, password) {
+            const webcam = document.getElementById('webcam');
+            const resultElement = document.getElementById('result');
+            const loadingScreen = document.getElementById('loadingScreen');
 
-      try {
-        const response = await fetch('/student_login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ username, password })
+            loadingScreen.style.visibility = 'visible';
+            try {
+                if (!webcam.videoWidth || !webcam.videoHeight) {
+                    throw new Error('Webcam feed is not ready. Please try again.');
+                }
+
+                // Kameradan alınan görüntüyü işleme
+                const canvas = document.createElement('canvas');
+                canvas.width = webcam.videoWidth;
+                canvas.height = webcam.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+
+                const webcamImage = canvas.toDataURL('image/jpeg');
+
+                // Backend'e gönderilecek JSON
+                const payload = {
+                    username,
+                    password,
+                    webcamImage,
+                };
+
+                const response = await fetch('/student_login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.match) {
+                    // Başarılı giriş
+                    resultElement.innerText = '✅ Login Successful: Welcome!';
+                    resultElement.className = 'text-success';
+                    setTimeout(() => window.location.href = '/resultsogrenci', 1500);
+                } else if (response.ok && !result.match) {
+                    // Yüz eşleşmesi başarısız
+                    resultElement.innerText = '❌ Face mismatch: Access denied.';
+                    resultElement.className = 'text-danger';
+                } else {
+                    throw new Error(result.message || 'An unknown error occurred.');
+                }
+            } catch (error) {
+                resultElement.innerText = error.message;
+                resultElement.className = 'text-danger';
+            } finally {
+                loadingScreen.style.visibility = 'hidden';
+            }
+        }
+
+        document.getElementById('proceedButton').addEventListener('click', function () {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = 'Please fill in both fields.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('faceRecognitionSection').style.display = 'block';
+            setupWebcam();
         });
 
-        if (response.ok) {
-          // Giriş başarılı -> Ders sonuçlarını kontrol et
-          const lessonResponse = await fetch('/resultsogrenci');
-          if (lessonResponse.ok) {
-            window.location.href = '/resultsogrenci'; // Dersi olanlar yönlendirilir
-          } else if (lessonResponse.status === 404) {
-            const lessonError = await lessonResponse.json();
-            errorMessage.textContent = lessonError.error || 'No lesson found for you now';
-            errorMessage.style.display = 'block'; // Ders yok uyarısını göster
-          }
-        } else {
-          const result = await response.json();
-          errorMessage.textContent = result.error || 'An error occurred. Please try again.';
-          errorMessage.style.display = 'block'; // Giriş hatası mesajını göster
-        }
-      } catch (error) {
-        errorMessage.textContent = 'Network error: ' + error.message;
-        errorMessage.style.display = 'block'; // Ağ hatası mesajını göster
-      } finally {
-        // Butonu eski haline döndür
-        submitButton.innerHTML = "SIGN IN";
-        submitButton.disabled = false;
-      }
-    });
-  </script>
+        document.getElementById('captureBtn').addEventListener('click', function () {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            captureAndVerifyFace(username, password);
+        });
+    </script>
 </body>
 </html>

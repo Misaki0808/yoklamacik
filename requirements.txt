@@ -2,8 +2,6 @@
 Flask==2.3.2
 Flask-Session==0.4.0
 
-# DeepFace için
-deepface==0.0.78
 
 # BeautifulSoup için
 beautifulsoup4==4.12.2

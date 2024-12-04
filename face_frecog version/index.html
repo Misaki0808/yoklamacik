@@ -145,7 +145,7 @@
             const obsProfileImage = document.getElementById('obsProfileImage');
             const resultElement = document.getElementById('result');
 
-            if (!obsProfileImage.src) {
+            if (!obsProfileImage.src || !obsProfileImage.src.startsWith('data:image/')) {
                 alert('Please load the OBS profile image first.');
                 return;
             }
@@ -154,6 +154,10 @@
             loadingScreen.style.visibility = 'visible';
 
             try {
+                if (!webcam.videoWidth || !webcam.videoHeight) {
+                    throw new Error('Webcam feed is not ready. Please try again.');
+                }
+
                 // Kameradan alınan görüntüyü canvas ile işleme
                 const webcamCanvas = document.createElement('canvas');
                 webcamCanvas.width = webcam.videoWidth;
@@ -166,9 +170,13 @@
 
                 // Backend'e gönderilecek JSON verisi
                 const payload = {
-                    obsImage: obsProfileImage.src, // Profil resmi (Base64)
-                    webcamImage, // Kamera görüntüsü (Base64)
+                    obsImage: obsProfileImage.src,
+                    webcamImage,
                 };
+
+                if (!payload.obsImage.startsWith('data:image/') || !payload.webcamImage.startsWith('data:image/')) {
+                    throw new Error('Invalid image format. Please try again.');
+                }
 
                 // Backend API'sine gönder
                 const response = await fetch('http://127.0.0.1:5000/compare-faces', {
@@ -178,10 +186,15 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to compare faces.');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to compare faces.');
                 }
 
                 const result = await response.json();
+
+                if (!result || typeof result.match === 'undefined') {
+                    throw new Error('Unexpected response format from server.');
+                }
 
                 // Sonuçları göster
                 resultElement.innerText = result.match
@@ -195,6 +208,7 @@
                 loadingScreen.style.visibility = 'hidden';
             }
         }
+
         document.getElementById('loadObsImageBtn').addEventListener('click', loadObsImage);
         document.getElementById('captureBtn').addEventListener('click', compareFaces);
 

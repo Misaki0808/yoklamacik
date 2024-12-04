@@ -1,9 +1,15 @@
+import base64
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from urllib.parse import parse_qs, urlparse
-from deepface import DeepFace
+import requests
+import face_recognition
+import numpy as np
+from PIL import Image
+import io
 
-# Function to parse, convert to UTC+3, and round up to the nearest minute
+
+# Datetime İşlemleri
 def datetime_converter(date_str):
     timestamp_ms = int(date_str.strip("/Date()/"))
     timestamp_s = timestamp_ms / 1000
@@ -15,17 +21,18 @@ def datetime_converter(date_str):
     return formatted
 
 
-
-
+# JSON Veri Okuma ve Zaman Aralığı Kontrolü
 def read_data_array(data):
     for lesson in data:
         yield lesson
+
 
 def is_time_in_range(start, end, check_time):
     start_dt = datetime.strptime(start, "%Y-%m-%d %H:%M")
     end_dt = datetime.strptime(end, "%Y-%m-%d %H:%M")
     check_time_dt = datetime.strptime(check_time, "%Y-%m-%d %H:%M")
     return start_dt <= check_time_dt <= end_dt
+
 
 def find_lesson(data, date_time):
     for lesson in read_data_array(data):
@@ -35,6 +42,8 @@ def find_lesson(data, date_time):
             return lesson["Title"]
     return "there is no lesson for you now"
 
+
+# Aksis Giriş ve Doğrulama Fonksiyonları
 def get_verification_token(requests_session, url):
     response = requests_session.get(url)
     if response.status_code == 200:
@@ -44,6 +53,7 @@ def get_verification_token(requests_session, url):
     else:
         print(f"Giriş sayfasına erişim başarısız: {response.status_code}")
         return None
+
 
 def login_to_aksis(requests_session, username, password, login_url, token):
     login_data = {
@@ -59,6 +69,7 @@ def login_to_aksis(requests_session, username, password, login_url, token):
         print("Aksis giriş başarısız")
         return False
 
+
 def check_aksis_api(requests_session, api_url):
     response = requests_session.post(api_url)
     if response.status_code == 200:
@@ -73,6 +84,8 @@ def check_aksis_api(requests_session, api_url):
         print(f"Aksis API isteğinde hata: {response.status_code}")
         return False
 
+
+# OBS ve Dinamik URL İşlemleri
 def extract_dynamic_url(soup):
     script_tags = soup.find_all("script")
     for script in script_tags:
@@ -84,12 +97,14 @@ def extract_dynamic_url(soup):
                 return dynamic_url
     return None
 
+
 def extract_ids_from_url(dynamic_url):
     fixed_url = dynamic_url.replace(r"\u0026", "&")
     query_params = parse_qs(urlparse(fixed_url).query)
     ogrenci_id = query_params.get("OgrenciId", [None])[0]
     birim_id = query_params.get("BirimId", [None])[0]
     return ogrenci_id, birim_id
+
 
 def post_dynamic_api_data(requests_session, base_url, dynamic_url, ogrenci_id, birim_id, yil, donem):
     full_url = f"{base_url}{dynamic_url}"
@@ -110,6 +125,7 @@ def post_dynamic_api_data(requests_session, base_url, dynamic_url, ogrenci_id, b
     else:
         print(f"API isteği başarısız: {response.status_code}")
         return None
+
 
 def post_to_obs_results(requests_session, url, base_url):
     payload = {
@@ -135,25 +151,88 @@ def post_to_obs_results(requests_session, url, base_url):
     else:
         print(f"POST isteğinde hata: {response.status_code}")
     return None
+def access_obs_home(session):
+    """
+    OBS ana sayfasına erişerek oturum çerezlerini doğrular.
+    """
+    OBS_HOME_URL = "https://obs.istanbul.edu.tr"
+    response = session.get(OBS_HOME_URL)
+    if response.status_code == 200:
+        print("OBS ana sayfasına erişim sağlandı.")
+        return True
+    else:
+        raise Exception(f"OBS ana sayfasına erişim sağlanamadı: {response.status_code}")
+
+
+# Profil Fotoğrafı ve Yüz Tanıma İşlemleri
+def get_profile_image(session):
+    """
+    Fetches the student's profile image in base64 format.
+    """
+    PROFILE_URL = "https://obs.istanbul.edu.tr/Profil/Ozluk"
+
+    # Önce OBS ana sayfasına erişin
+    access_obs_home(session)
+
+    # Profil sayfasına erişin
+    response = session.get(PROFILE_URL)
+    if response.status_code != 200:
+        raise Exception("Profil sayfasına erişim başarısız: " + str(response.status_code))
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    image_tag = soup.find("img", {"class": "profileImage"})  # Sınıf adını kontrol edin
+
+    if not image_tag or 'src' not in image_tag.attrs:
+        raise Exception("Profil fotoğrafı bulunamadı veya yüklenmemiş.")
+
+    image_url = image_tag['src']
+    if not image_url.startswith("http"):
+        base_url = PROFILE_URL.split("/Profil")[0]
+        image_url = base_url + image_url
+
+    # Resmi indir
+    image_response = session.get(image_url)
+    if image_response.status_code != 200:
+        raise Exception("Profil fotoğrafı indirilemedi: " + str(image_response.status_code))
+
+    # Base64'e dönüştür
+    return f"data:image/jpeg;base64,{base64.b64encode(image_response.content).decode('utf-8')}"
 
 
 
-def compare_faces(image_path1, image_path2):
+
+def decode_base64_to_image(base64_string):
+    image_data = base64.b64decode(base64_string.split(",")[1])
+    pil_image = Image.open(io.BytesIO(image_data)).convert("RGB")
+    return np.array(pil_image)
+
+
+def compare_faces(obs_image_path, webcam_image_path):
     """
     Compares two images to determine if the faces match.
-
-    Parameters:
-        image_path1 (str): Path to the first image.
-        image_path2 (str): Path to the second image.
-
-    Returns:
-        bool: True if faces match, False otherwise.
     """
     try:
-        # Perform face verification
-        result = DeepFace.verify(image_path1, image_path2)
-        return result.get("verified", False)
-    except ValueError as e:
-        print(f"Error: {e}")
-        return False
+        obs_image = face_recognition.load_image_file(obs_image_path)
+        webcam_image = face_recognition.load_image_file(webcam_image_path)
 
+        obs_face_locations = face_recognition.face_locations(obs_image)
+        webcam_face_locations = face_recognition.face_locations(webcam_image)
+
+        if not obs_face_locations:
+            raise ValueError("No face detected in the OBS profile image.")
+        if not webcam_face_locations:
+            raise ValueError("No face detected in the webcam image.")
+
+        obs_encoding = face_recognition.face_encodings(obs_image, obs_face_locations)[0]
+        webcam_encoding = face_recognition.face_encodings(webcam_image, webcam_face_locations)[0]
+
+        # Compute Euclidean distance
+        distance = np.linalg.norm(obs_encoding - webcam_encoding)
+        threshold = 0.65  # Adjust this threshold if necessary
+        is_match = distance < threshold
+
+        print(f"Distance: {distance}, Threshold: {threshold}, Match: {is_match}")
+        return is_match
+    except IndexError as e:
+        print(f"Face not detected in one of the images. Error: {e}")
+        return False
