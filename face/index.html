@@ -140,9 +140,9 @@
             });
         }
 
-        async function compareFaces() {
-            const obsProfileImage = document.getElementById('obsProfileImage');
+                async function compareFaces() {
             const webcam = document.getElementById('webcam');
+            const obsProfileImage = document.getElementById('obsProfileImage');
             const resultElement = document.getElementById('result');
 
             if (!obsProfileImage.src) {
@@ -154,36 +154,40 @@
             loadingScreen.style.visibility = 'visible';
 
             try {
-                // OBS profil resmini analiz et
-                const obsDescriptor = await faceapi
-                    .detectSingleFace(obsProfileImage, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
-
                 // Kameradan alınan görüntüyü canvas ile işleme
                 const webcamCanvas = document.createElement('canvas');
                 webcamCanvas.width = webcam.videoWidth;
                 webcamCanvas.height = webcam.videoHeight;
-                const webcamCtx = webcamCanvas.getContext('2d',{willReadFrequently: true});
+                const webcamCtx = webcamCanvas.getContext('2d');
                 webcamCtx.drawImage(webcam, 0, 0, webcamCanvas.width, webcamCanvas.height);
 
-                const webcamDescriptor = await faceapi
-                    .detectSingleFace(webcamCanvas, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
+                // Görüntüyü Base64'e çevir
+                const webcamImage = webcamCanvas.toDataURL('image/jpeg');
 
-                if (!obsDescriptor || !webcamDescriptor) {
-                    throw new Error('Face detection failed.');
+                // Backend'e gönderilecek JSON verisi
+                const payload = {
+                    obsImage: obsProfileImage.src, // Profil resmi (Base64)
+                    webcamImage, // Kamera görüntüsü (Base64)
+                };
+
+                // Backend API'sine gönder
+                const response = await fetch('http://127.0.0.1:5000/compare-faces', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to compare faces.');
                 }
 
-                // Euclidean distance ile karşılaştırma
-                const distance = faceapi.euclideanDistance(obsDescriptor.descriptor, webcamDescriptor.descriptor);
-                const threshold = 0.6;
+                const result = await response.json();
 
-                resultElement.innerText = distance < threshold
+                // Sonuçları göster
+                resultElement.innerText = result.match
                     ? '✅ Match: Same person detected!'
                     : '❌ No match: Different person.';
-                resultElement.className = distance < threshold ? 'text-success' : 'text-danger';
+                resultElement.className = result.match ? 'text-success' : 'text-danger';
             } catch (error) {
                 resultElement.innerText = error.message;
                 resultElement.className = 'text-danger';
@@ -191,7 +195,6 @@
                 loadingScreen.style.visibility = 'hidden';
             }
         }
-
         document.getElementById('loadObsImageBtn').addEventListener('click', loadObsImage);
         document.getElementById('captureBtn').addEventListener('click', compareFaces);
 

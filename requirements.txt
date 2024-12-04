@@ -1,3 +1,17 @@
-Flask==2.0.3
-requests==2.26.0
-beautifulsoup4==4.10.0
+# Flask ve Flask eklentileri
+Flask==2.3.2
+Flask-Session==0.4.0
+
+# DeepFace için
+deepface==0.0.78
+
+# BeautifulSoup için
+beautifulsoup4==4.12.2
+
+# APScheduler için
+APScheduler==3.10.4
+
+# Requests modülü
+requests==2.31.0
+
+# Python'dan gelen yerleşik mo

@@ -7,6 +7,8 @@ import secrets
 import os
 from functions import datetime_converter, read_data_array, is_time_in_range, find_lesson, get_verification_token, login_to_aksis, check_aksis_api, extract_dynamic_url, extract_ids_from_url, post_dynamic_api_data, post_to_obs_results
 from datetime import datetime
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Güvenli bir gizli anahtar oluşturun
@@ -20,6 +22,36 @@ app.config['SESSION_USE_SIGNER'] = True
 app.config['SESSION_FILE_DIR'] = './flask_session'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # 30 dakika oturum süresi
 Session(app)
+def clean_session_files(session_dir, lifetime):
+    """
+    Eski oturum dosyalarını temizlemek için yardımcı fonksiyon.
+    :param session_dir: Oturum dosyalarının bulunduğu dizin.
+    :param lifetime: Oturum süresinin saniye cinsinden değeri.
+    """
+    now = time.time()
+    for filename in os.listdir(session_dir):
+        file_path = os.path.join(session_dir, filename)
+        if os.path.isfile(file_path):
+            # Dosyanın son değiştirilme zamanını kontrol et
+            if now - os.path.getmtime(file_path) > lifetime:
+                os.remove(file_path)
+                print(f"Eski oturum dosyası silindi: {file_path}")
+def start_cleaner():
+    """
+    Oturum dosyalarını temizlemek için zamanlayıcıyı başlatır.
+    """
+    session_dir = app.config['SESSION_FILE_DIR']
+    lifetime = app.config['PERMANENT_SESSION_LIFETIME'].total_seconds()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(clean_session_files, 'interval', minutes=30, args=[session_dir, lifetime])
+    scheduler.start()
+
+@app.before_first_request
+def initialize():
+    """
+    İlk istekten önce temizleyici zamanlayıcıyı başlat.
+    """
+    start_cleaner()
 
 @app.route('/logout')
 def logout():
