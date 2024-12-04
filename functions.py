@@ -1,6 +1,8 @@
 from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 from urllib.parse import parse_qs, urlparse
+from deepface import DeepFace
+
 # Function to parse, convert to UTC+3, and round up to the nearest minute
 def datetime_converter(date_str):
     timestamp_ms = int(date_str.strip("/Date()/"))
@@ -11,6 +13,9 @@ def datetime_converter(date_str):
         utc_plus_3 = (utc_plus_3 + timedelta(minutes=1)).replace(second=0, microsecond=0)
     formatted = utc_plus_3.strftime("%Y-%m-%d %H:%M")
     return formatted
+
+
+
 
 def read_data_array(data):
     for lesson in data:
@@ -130,3 +135,25 @@ def post_to_obs_results(requests_session, url, base_url):
     else:
         print(f"POST isteğinde hata: {response.status_code}")
     return None
+
+
+
+def compare_faces(image_path1, image_path2):
+    """
+    Compares two images to determine if the faces match.
+
+    Parameters:
+        image_path1 (str): Path to the first image.
+        image_path2 (str): Path to the second image.
+
+    Returns:
+        bool: True if faces match, False otherwise.
+    """
+    try:
+        # Perform face verification
+        result = DeepFace.verify(image_path1, image_path2)
+        return result.get("verified", False)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return False
+
